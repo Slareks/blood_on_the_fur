@@ -112,152 +112,46 @@
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
        // Инициализация карты
+        const firebaseConfig = {
+              apiKey: "AIzaSyBea7xAB3r_lZf2BhK74CEGgBEylodbO14",
+              authDomain: "blood-on-the-fur.firebaseapp.com",
+              databaseURL: "https://blood-on-the-fur-default-rtdb.europe-west1.firebasedatabase.app",
+              projectId: "blood-on-the-fur",
+              storageBucket: "blood-on-the-fur.firebasestorage.app",
+              messagingSenderId: "1055039376241",
+              appId: "1:1055039376241:web:d62c0fc681d86d7b2304d0",
+              measurementId: "G-46SNC9CKGK"
+            };
         var mapUrl = 'images/Вулфкрест.png';
-        var mapW = 1000;
-        var mapH = 638;
-        var bounds = [[0, 0], [mapH, mapW]];
+        var bounds = [[0, 0], [638, 1000]];
 
         var map = L.map('map', {
             crs: L.CRS.Simple,
             maxBounds: bounds,
             maxBoundsViscosity: 1.0,
-            minZoom: 0, // Ограничили отдаление, чтобы не было видно пустоты
+            minZoom: 0,
             maxZoom: 2,
             attributionControl: false,
-            scrollWheelZoom: false // Отключили зум колесиком
+            scrollWheelZoom: false
         });
 
         L.imageOverlay(mapUrl, bounds).addTo(map);
+        map.setView([438, 368], 1); 
 
-        // УСТАНАВЛИВАЕМ СТАРТОВУЮ ТОЧКУ И ЗУМ (Вместо fitBounds)
-        // [438, 368] - координаты твоей таверны, 1 - уровень приближения
-        map.setView([438, 368], 1);
+        var towerIcon = L.icon({ iconUrl: 'images/tower.png', iconSize: [50, 50], iconAnchor: [25, 50] });
 
-        // Иконки
-        var towerIcon = L.icon({
-            iconUrl: 'images/tower.png',
-            iconSize: [50, 50],
-            iconAnchor: [25, 50]
-        });
-
-        var TavernIcon = L.icon({
-            iconUrl: 'images/таверна.png',
-            iconSize: [60, 60],
-            iconAnchor: [30, 60]
-        });
-
-        // Маркер таверны
-        var capitalMarker = L.marker([438, 368], {icon: TavernIcon}).addTo(map);
-
-        var tavernPopupContent = `
-            <div class="scroll-container">
-                <div class="scroll-text-area">
-                    <h3>Таверна "Жареный хвост"</h3>
-                    <p>Деревянная шумящая лачуга, которая подобно улью взгромоздилась на деревянные балки постамента над топкой почвой берегов Озера Кальтер. Знаменита лишь тем, что здесь всегда можно найти проблем и выпивку за гроши. Место отдыха самых бедных жителей города.</p>
-                    <p>Фирменным блюдом являются жареные крысиные хвостики в яичном кляре. Местный трактирщик Нилл - шепелявый, но бесстрашный безумец, обанкротившийся на одной из торговых сделок лет 20 назад и, прожив среди бедняков около 4 лет, решил открыть свою таверну. Крайне непритязательное, но дешёвое место, где вас обслужат в обмен на краденую посуду.</p>
-                </div>
-            </div>
-        `;
-
-        capitalMarker.bindPopup(tavernPopupContent, {
-            className: 'fantasy-plaque',
-            offset: [0, -45],
-            maxWidth: 450,
-            minWidth: 350
-        });
-
-        // Исправление прокрутки: при открытии окна принудительно разрешаем скролл
-            capitalMarker.bindTooltip("Таверна 'Жаренный хвост'", {
-            permanent: true,     // Текст виден всегда (если false - будет появляться только при наведении)
-            direction: 'top',    // Вешаем над иконкой (можно 'bottom', 'right', 'left')
-            offset: [0, -50],    // Сдвигаем чуть выше, чтобы не перекрывать крышу таверны
-            className: 'fantasy-label' // Применяем наш красивый CSS-стиль
-        });
-
-        capitalMarker.on('mouseover', function () { this.openPopup(); });
-        capitalMarker.on('mouseout', function () { this.closePopup(); });
-
-        // Маркер озера
-        var solarisMarker = L.marker([100, 554], {icon: towerIcon}).addTo(map);
-        var lakeContent = `
-            <div class="scroll-container">
-                <div class="scroll-text-area">
-                    <h3>Озеро Кальтер</h3>
-                    <p>Спокойные, но обманчивые воды, скрывающие на своем дне не одну тайну ушедших эпох.</p>
-                </div>
-            </div>
-        `;
-
-        solarisMarker.bindPopup(lakeContent, { className: 'fantasy-plaque', offset: [0, -35] });
-        solarisMarker.on('mouseover', function () { this.openPopup(); });
-        solarisMarker.on('mouseout', function () { this.closePopup(); });
-
-// ==========================================
-        // ИНТЕРФЕЙС СОЗДАНИЯ НОВОЙ МЕТКИ (Шаг 2)
         // ==========================================
-        var creationPopup = L.popup({
-            className: 'fantasy-plaque', // Используем наш стиль таблички
-            minWidth: 300
-        });
-
-        // 1. Открываем форму при клике на карту
-        map.on('click', function(e) {
-            var y = Math.round(e.latlng.lat);
-            var x = Math.round(e.latlng.lng);
-
-            // Создаем HTML-код нашей формы с полями ввода
-            var formHtml = `
-                <div class="plaque-content" style="padding: 15px;">
-                    <h3>Новое место</h3>
-
-                    <input type="text" id="newMarkerTitle" placeholder="Название локации"
-                           style="width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 8px;
-                                  background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b;
-                                  font-family: 'Georgia', serif;">
-
-                    <textarea id="newMarkerDesc" placeholder="История этого места..." rows="4"
-                              style="width: 100%; box-sizing: border-box; margin-bottom: 15px; padding: 8px;
-                                     background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b;
-                                     font-family: 'Georgia', serif; resize: none;"></textarea>
-
-                    <button onclick="saveMarker(${y}, ${x})"
-                            style="width: 100%; padding: 10px; background: #8b5a2b; color: #ebdca7;
-                                   border: 1px solid #4a2e15; cursor: pointer; font-family: 'Georgia', serif;
-                                   font-weight: bold; text-transform: uppercase;">
-                        Воздвигнуть метку
-                    </button>
-                </div>
-            `;
-
-            // Ставим окошко на карту в место клика
-            creationPopup
-                .setLatLng([y, x])
-                .setContent(formHtml)
-                .openOn(map);
-        });
-
-        // 2. Функция, которая срабатывает при нажатии на кнопку "Воздвигнуть метку"
-        window.saveMarker = function(y, x) {
-            // Читаем, что пользователь написал в полях
-            var title = document.getElementById('newMarkerTitle').value;
-            var desc = document.getElementById('newMarkerDesc').value;
-
-            // Проверка: если не ввели название, ругаемся
-            if (title.trim() === "") {
-                alert("Назови это место, путник!");
-                return;
-            }
-
-            // Закрываем форму создания
-            map.closePopup(creationPopup);
-
-            // СОЗДАЕМ САМУ МЕТКУ НА КАРТЕ (пока используем иконку башни по умолчанию)
+        // 3. ФУНКЦИЯ ОТРИСОВКИ МЕТКИ НА КАРТЕ
+        // ==========================================
+        // Мы вынесли это в отдельную функцию, чтобы не дублировать код
+        function createMarkerOnMap(y, x, title, desc) {
             var newMarker = L.marker([y, x], {icon: towerIcon}).addTo(map);
 
-            // Собираем для нее стандартный текст
             var popupContent = `
                 <div class="plaque-content">
                     <h3>${title}</h3>
@@ -265,38 +159,89 @@
                 </div>
             `;
 
-            // Привязываем большое окно
-            newMarker.bindPopup(popupContent, {
-                className: 'fantasy-plaque',
-                offset: [0, -35],
-                maxWidth: 400,
-                minWidth: 350
+            newMarker.bindPopup(popupContent, { 
+                className: 'fantasy-plaque', offset: [0, -35], maxWidth: 400, minWidth: 350
             });
 
-            // Привязываем тултип (надпись над маркером)
             newMarker.bindTooltip(title, {
-                permanent: true,
-                direction: 'top',
-                offset: [0, -40],
-                className: 'fantasy-label'
+                permanent: true, direction: 'top', offset: [0, -40], className: 'fantasy-label'
             });
 
-            // Навешиваем события открытия/закрытия
             newMarker.on('mouseover', function () { this.openPopup(); });
             newMarker.on('mouseout', function () { this.closePopup(); });
+            
+            // Фикс скролла
+            newMarker.on('popupopen', function(e) {
+                var container = e.popup._container.querySelector('.plaque-content');
+                if (container) { L.DomEvent.on(container, 'wheel', L.DomEvent.stopPropagation); }
+            });
+        }
 
-            // Выводим в консоль данные (в Шаге 3 мы вместо console.log будем отправлять это в Firebase)
-            console.log("Готово к отправке в базу:", { title: title, description: desc, y: y, x: x });
+        // ==========================================
+        // 4. ЗАГРУЗКА МЕТОК ИЗ БАЗЫ ПРИ ЗАПУСКЕ
+        // ==========================================
+        // Этот код постоянно "слушает" базу. Как только там появляется новая метка, он рисует её.
+        markersRef.on('child_added', function(snapshot) {
+            var data = snapshot.val();
+            createMarkerOnMap(data.y, data.x, data.title, data.description);
+        });
+
+        // ==========================================
+        // 5. ИНТЕРФЕЙС СОЗДАНИЯ (ФОРМА И СОХРАНЕНИЕ)
+        // ==========================================
+        var creationPopup = L.popup({ className: 'fantasy-plaque', minWidth: 300 });
+
+        map.on('click', function(e) {
+            var y = Math.round(e.latlng.lat);
+            var x = Math.round(e.latlng.lng);
+
+            var formHtml = `
+                <div class="plaque-content" style="padding: 15px;">
+                    <h3>Новое место</h3>
+                    <input type="text" id="newMarkerTitle" placeholder="Название..." 
+                           style="width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 8px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b;">
+                    <textarea id="newMarkerDesc" placeholder="История..." rows="4" 
+                              style="width: 100%; box-sizing: border-box; margin-bottom: 15px; padding: 8px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b; resize: none;"></textarea>
+                    <button onclick="saveMarker(${y}, ${x})" 
+                            style="width: 100%; padding: 10px; background: #8b5a2b; color: #ebdca7; border: 1px solid #4a2e15; cursor: pointer; font-weight: bold;">
+                        Воздвигнуть метку
+                    </button>
+                </div>
+            `;
+            creationPopup.setLatLng([y, x]).setContent(formHtml).openOn(map);
+        });
+
+        // Функция ОТПРАВКИ данных в базу
+        window.saveMarker = function(y, x) {
+            var title = document.getElementById('newMarkerTitle').value;
+            var desc = document.getElementById('newMarkerDesc').value;
+
+            if (title.trim() === "") {
+                alert("Назови это место, путник!");
+                return;
+            }
+
+            // Магия здесь: мы больше не рисуем маркер руками, 
+            // мы отправляем его в базу! А отрисуется он сам благодаря блоку №4.
+            markersRef.push({
+                y: y,
+                x: x,
+                title: title,
+                description: desc
+            });
+
+            map.closePopup(creationPopup);
         };
 
-        // Масштабирование иконок
+        // ==========================================
+        // 6. МАСШТАБИРОВАНИЕ ИКОНОК
+        // ==========================================
         map.on('zoomend', function() {
             var currentZoom = map.getZoom();
             var scale = 1;
             if (currentZoom === 0) scale = 0.5;
             else if (currentZoom === 1) scale = 0.8;
-            else if (currentZoom >= 2) scale = 1;
-
+            
             document.querySelectorAll('.leaflet-marker-icon').forEach(function(marker) {
                 var currentTransform = marker.style.transform;
                 if (currentTransform) {
