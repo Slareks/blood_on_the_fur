@@ -214,6 +214,7 @@
         // ==========================================
         // НОВОЕ: Добавили параметр `key` первым аргументом
         function createMarkerOnMap(key, y, x, title, desc, iconType) {
+            
             // Если Мастер - показываем кнопку удаления. Если гость - показываем пустую строку.
             var deleteBtnHtml = isMaster 
                 ? `<button onclick="deleteMarker('${key}')" style="margin-top: 15px; width: 100%; padding: 6px; background: #6b2424; color: #ebdca7; border: 1px solid #4a2e15; cursor: pointer; font-family: 'Georgia', serif; font-size: 12px; font-weight: bold;">Разрушить метку</button>` 
@@ -233,33 +234,6 @@
                 L.DomEvent.stopPropagation(e); 
                 // Теперь карта не узнает, что ты кликнул, если ты попал по маркеру
             });
-
-            var popupContent = `
-                <div class="plaque-content">
-                    <h3>${title}</h3>
-                    <p>${desc}</p>
-                    <button onclick="deleteMarker('${key}')" 
-                            style="margin-top: 15px; width: 100%; padding: 6px; background: #6b2424; color: #ebdca7; border: 1px solid #4a2e15; cursor: pointer; font-family: 'Georgia', serif; font-size: 12px; font-weight: bold;">
-                        Разрушить метку
-                    </button>
-                </div>
-            `;
-
-            newMarker.bindPopup(popupContent, { 
-                className: 'fantasy-plaque', offset: [0, -35], maxWidth: 400, minWidth: 350
-            });
-
-            newMarker.bindTooltip(title, {
-                permanent: true, direction: 'top', offset: [0, -40], className: 'fantasy-label'
-            });
-            
-            newMarker.on('popupopen', function(e) {
-                var container = e.popup._container.querySelector('.plaque-content');
-                if (container) { L.DomEvent.on(container, 'wheel', L.DomEvent.stopPropagation); }
-            });
-
-            activeMarkers[key] = newMarker;
-        }
 
         // ==========================================
         // 4. ЗАГРУЗКА МЕТОК ИЗ БАЗЫ
@@ -382,11 +356,13 @@
         // ФУНКЦИЯ УДАЛЕНИЯ ДАННЫХ ИЗ FIREBASE
         // ==========================================
         window.deleteMarker = function(key) {
-            // Спрашиваем подтверждение, чтобы не удалить случайно
-            var confirmDelete = confirm("Ты уверен, что хочешь стереть это место с лица Элдрии?");
-            
-            if (confirmDelete) {
-                // Обращаемся к конкретной метке по её ID и говорим "Удали себя"
+            // Проверка: вошел ли пользователь?
+            if (!firebase.auth().currentUser) {
+                alert("У вас нет власти в этих землях, путник!");
+                return;
+            }
+
+            if (confirm("Ты уверен, что хочешь стереть это место с лица Элдрии?")) {
                 markersRef.child(key).remove();
             }
         };
