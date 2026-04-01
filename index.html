@@ -3,89 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Интерактивная Карта Элдрии</title>
+    <title>Интерактивная карта</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
-        /* ==========================================
-           СТИЛИ ДЛЯ НАДПИСЕЙ НАД ИКОНКАМИ
-           ========================================== */
-        .leaflet-tooltip.fantasy-label {
-            background: transparent !important; /* Убираем белый фон */
-            border: none !important;            /* Убираем рамку */
-            box-shadow: none !important;        /* Убираем тень прямоугольника */
-
-            /* Настройки самого текста */
-            font-family: 'Georgia', serif;
-            font-size: 16px;
-            font-weight: bold;
-            color: #ebdca7; /* Светло-золотистый цвет пергамента */
-            letter-spacing: 1px;
-
-            /* Густая черная тень вокруг букв, чтобы текст не сливался с картой */
-            text-shadow:
-                -1px -1px 0 #000,
-                 1px -1px 0 #000,
-                -1px  1px 0 #000,
-                 1px  1px 0 #000,
-                 0px  4px 8px rgba(0,0,0,0.8);
-        }
-
-        /* Убираем стандартный маленький треугольник (хвостик) тултипа */
-        .leaflet-tooltip.fantasy-label::before {
-            display: none !important;
-        }
-
         body { margin: 0; padding: 0; background: #1a1a1a; }
         #map { width: 100vw; height: 100vh; }
+
+        /* Темный фон за пределами карты */
         .leaflet-container {
-            background-color: #1a1a1a !important; /* Темный цвет, как у остального фона */
+            background-color: #1a1a1a !important; 
         }
+
         /* Плавное сжатие иконок при отдалении */
         .leaflet-marker-icon {
-            transform-origin: bottom center !important;
-            transition: transform 0.2s ease-in-out;
+            transform-origin: bottom center !important; 
+            transition: transform 0.2s ease-in-out; 
         }
 
         /* ==========================================
-           ФЕНТЕЗИЙНАЯ ТАБЛИЧКА (CSS-МАГИЯ)
+           СТИЛИ БОЛЬШОГО ВСПЛЫВАЮЩЕГО ОКНА (Popup)
            ========================================== */
-
-        /* 1. Настраиваем главную обертку окна */
         .leaflet-popup.fantasy-plaque .leaflet-popup-content-wrapper {
-            /* Цвет старого пергамента с легким градиентом */
             background: linear-gradient(135deg, #e8d5a6 0%, #d4b881 100%);
-            /* Темная деревянная рамка */
             border: 4px solid #4a2e15;
-            border-radius: 8px; /* Слегка закругляем углы */
-            /* Двойная тень: внешняя черная для объема и внутренняя коричневая для эффекта старины */
+            border-radius: 8px; 
             box-shadow: 0 10px 25px rgba(0,0,0,0.8), inset 0 0 20px rgba(100,60,20,0.3);
             padding: 0;
         }
 
-        /* 2. Убираем стандартный "хвостик" (стрелочку вниз), пусть табличка парит в воздухе */
         .leaflet-popup.fantasy-plaque .leaflet-popup-tip-container {
-            display: none;
+            display: none; /* Убираем нижний треугольник */
         }
 
-        /* 3. Внутренняя область с текстом */
         .plaque-content {
             padding: 20px;
-            font-family: 'Georgia', serif; /* Классический книжный шрифт */
-            color: #311c09; /* Очень темно-коричневый текст, почти черный */
-
-            /* Если текста слишком много, появится прокрутка! */
-            max-height: 280px;
-            overflow-y: auto;
+            font-family: 'Georgia', serif; 
+            color: #311c09; 
+            max-height: 280px; 
+            overflow-y: auto; /* Включаем прокрутку для длинного текста */
         }
 
-        /* 4. Стилизация заголовка */
         .plaque-content h3 {
             margin: 0 0 12px 0;
             font-size: 19px;
             text-align: center;
-            /* Линия-разделитель под заголовком */
             border-bottom: 2px solid #8b5a2b;
             padding-bottom: 8px;
             font-weight: bold;
@@ -93,7 +56,6 @@
             letter-spacing: 1px;
         }
 
-        /* 5. Стилизация обычного текста */
         .plaque-content p {
             margin: 0 0 10px 0;
             font-size: 14px;
@@ -101,32 +63,67 @@
             text-align: justify;
         }
 
-        /* 6. Кастомный скроллбар (как в старых фолиантах) */
+        /* Кастомный скроллбар для текста */
         .plaque-content::-webkit-scrollbar { width: 6px; }
         .plaque-content::-webkit-scrollbar-track { background: transparent; }
         .plaque-content::-webkit-scrollbar-thumb { background-color: #4a2e15; border-radius: 4px; }
+
+        /* ==========================================
+           СТИЛИ НАДПИСЕЙ НАД ИКОНКАМИ (Tooltip)
+           ========================================== */
+        .leaflet-tooltip.fantasy-label {
+            background: transparent !important; 
+            border: none !important;            
+            box-shadow: none !important;        
+            font-family: 'Georgia', serif;
+            font-size: 16px;
+            font-weight: bold;
+            color: #ebdca7; 
+            letter-spacing: 1px;
+            text-shadow: 
+                -1px -1px 0 #000,  
+                 1px -1px 0 #000,
+                -1px  1px 0 #000,
+                 1px  1px 0 #000,
+                 0px  4px 8px rgba(0,0,0,0.8);
+        }
+
+        .leaflet-tooltip.fantasy-label::before {
+            display: none !important; /* Убираем треугольник у надписи */
+        }
     </style>
 </head>
 <body>
 
     <div id="map"></div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-       // Инициализация карты
+        // ==========================================
+        // 1. ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ FIREBASE
+        // ==========================================
+        // ВНИМАНИЕ: ЗАМЕНИ ЭТОТ БЛОК НА СВОИ ДАННЫЕ ИЗ GOOGLE CONSOLE!
         const firebaseConfig = {
-              apiKey: "AIzaSyBea7xAB3r_lZf2BhK74CEGgBEylodbO14",
-              authDomain: "blood-on-the-fur.firebaseapp.com",
-              databaseURL: "https://blood-on-the-fur-default-rtdb.europe-west1.firebasedatabase.app",
-              projectId: "blood-on-the-fur",
-              storageBucket: "blood-on-the-fur.firebasestorage.app",
-              messagingSenderId: "1055039376241",
-              appId: "1:1055039376241:web:d62c0fc681d86d7b2304d0",
-              measurementId: "G-46SNC9CKGK"
-            };
+            apiKey: "ТВОЙ_КЛЮЧ",
+            authDomain: "твой-проект.firebaseapp.com",
+            databaseURL: "https://твой-проект-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "твой-проект",
+            storageBucket: "твой-проект.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "твой-app-id"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        const markersRef = database.ref('eldria_custom_markers'); 
+
+        // ==========================================
+        // 2. БАЗОВАЯ НАСТРОЙКА КАРТЫ
+        // ==========================================
         var mapUrl = 'images/Вулфкрест.png';
         var bounds = [[0, 0], [638, 1000]];
 
@@ -137,18 +134,17 @@
             minZoom: 0,
             maxZoom: 2,
             attributionControl: false,
-            scrollWheelZoom: false
+            scrollWheelZoom: false // Отключаем зум колесиком
         });
 
         L.imageOverlay(mapUrl, bounds).addTo(map);
-        map.setView([438, 368], 1); 
+        map.setView([438, 368], 1); // Стартовая позиция
 
         var towerIcon = L.icon({ iconUrl: 'images/tower.png', iconSize: [50, 50], iconAnchor: [25, 50] });
 
         // ==========================================
         // 3. ФУНКЦИЯ ОТРИСОВКИ МЕТКИ НА КАРТЕ
         // ==========================================
-        // Мы вынесли это в отдельную функцию, чтобы не дублировать код
         function createMarkerOnMap(y, x, title, desc) {
             var newMarker = L.marker([y, x], {icon: towerIcon}).addTo(map);
 
@@ -170,7 +166,7 @@
             newMarker.on('mouseover', function () { this.openPopup(); });
             newMarker.on('mouseout', function () { this.closePopup(); });
             
-            // Фикс скролла
+            // Защита прокрутки текста (чтобы не скроллилась сама страница)
             newMarker.on('popupopen', function(e) {
                 var container = e.popup._container.querySelector('.plaque-content');
                 if (container) { L.DomEvent.on(container, 'wheel', L.DomEvent.stopPropagation); }
@@ -178,16 +174,15 @@
         }
 
         // ==========================================
-        // 4. ЗАГРУЗКА МЕТОК ИЗ БАЗЫ ПРИ ЗАПУСКЕ
+        // 4. ЗАГРУЗКА МЕТОК ИЗ БАЗЫ
         // ==========================================
-        // Этот код постоянно "слушает" базу. Как только там появляется новая метка, он рисует её.
         markersRef.on('child_added', function(snapshot) {
             var data = snapshot.val();
             createMarkerOnMap(data.y, data.x, data.title, data.description);
         });
 
         // ==========================================
-        // 5. ИНТЕРФЕЙС СОЗДАНИЯ (ФОРМА И СОХРАНЕНИЕ)
+        // 5. ИНТЕРФЕЙС СОЗДАНИЯ НОВОЙ МЕТКИ
         // ==========================================
         var creationPopup = L.popup({ className: 'fantasy-plaque', minWidth: 300 });
 
@@ -198,12 +193,12 @@
             var formHtml = `
                 <div class="plaque-content" style="padding: 15px;">
                     <h3>Новое место</h3>
-                    <input type="text" id="newMarkerTitle" placeholder="Название..." 
-                           style="width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 8px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b;">
-                    <textarea id="newMarkerDesc" placeholder="История..." rows="4" 
-                              style="width: 100%; box-sizing: border-box; margin-bottom: 15px; padding: 8px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b; resize: none;"></textarea>
+                    <input type="text" id="newMarkerTitle" placeholder="Название локации..." 
+                           style="width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 8px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b; font-family: 'Georgia', serif;">
+                    <textarea id="newMarkerDesc" placeholder="История этого места..." rows="4" 
+                              style="width: 100%; box-sizing: border-box; margin-bottom: 15px; padding: 8px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b; font-family: 'Georgia', serif; resize: none;"></textarea>
                     <button onclick="saveMarker(${y}, ${x})" 
-                            style="width: 100%; padding: 10px; background: #8b5a2b; color: #ebdca7; border: 1px solid #4a2e15; cursor: pointer; font-weight: bold;">
+                            style="width: 100%; padding: 10px; background: #8b5a2b; color: #ebdca7; border: 1px solid #4a2e15; cursor: pointer; font-family: 'Georgia', serif; font-weight: bold; text-transform: uppercase;">
                         Воздвигнуть метку
                     </button>
                 </div>
@@ -211,7 +206,7 @@
             creationPopup.setLatLng([y, x]).setContent(formHtml).openOn(map);
         });
 
-        // Функция ОТПРАВКИ данных в базу
+        // Отправка данных в Firebase
         window.saveMarker = function(y, x) {
             var title = document.getElementById('newMarkerTitle').value;
             var desc = document.getElementById('newMarkerDesc').value;
@@ -221,8 +216,6 @@
                 return;
             }
 
-            // Магия здесь: мы больше не рисуем маркер руками, 
-            // мы отправляем его в базу! А отрисуется он сам благодаря блоку №4.
             markersRef.push({
                 y: y,
                 x: x,
@@ -250,6 +243,7 @@
                 }
             });
         });
+        
         map.fire('zoomend');
     </script>
 </body>
