@@ -141,13 +141,34 @@
         L.imageOverlay(mapUrl, bounds).addTo(map);
         map.setView([438, 368], 1); // Стартовая позиция
 
-        var towerIcon = L.icon({ iconUrl: 'images/tower.png', iconSize: [50, 50], iconAnchor: [25, 50] });
-
+        // ==========================================
+        // 2.5 БИБЛИОТЕКА ИКОНОК
+        // ==========================================
+        // Создаем словарь всех доступных иконок
+        var mapIcons = {
+            'tower': L.icon({ iconUrl: 'images/tower.png', iconSize: [50, 50], iconAnchor: [25, 50] }),
+            'tavern': L.icon({ iconUrl: 'images/таверна.png', iconSize: [60, 60], iconAnchor: [30, 60] }),
+            'shop': L.icon({ iconUrl: 'images/shop.png', iconSize: [50, 50], iconAnchor: [25, 50] }),
+            'battle': L.icon({ iconUrl: 'images/Битва.png', iconSize: [60, 60], iconAnchor: [30, 60] }),
+            'Вопрос': L.icon({ iconUrl: 'images/Вопрос.png', iconSize: [50, 50], iconAnchor: [25, 50] }),
+            'Локация': L.icon({ iconUrl: 'images/Локация.png', iconSize: [60, 60], iconAnchor: [30, 60] }),
+            'Эвент': L.icon({ iconUrl: 'images/Эвент.png', iconSize: [50, 50], iconAnchor: [25, 50] }),
+            // Сюда ты сможешь легко добавлять новые! Например:
+            // 'ruins': L.icon({ iconUrl: 'images/ruins.png', iconSize: [45, 45], iconAnchor: [22, 45] }),
+            // 'cave': L.icon({ iconUrl: 'images/cave.png', iconSize: [40, 40], iconAnchor: [20, 40] })
+        };
         // ==========================================
         // 3. ФУНКЦИЯ ОТРИСОВКИ МЕТКИ НА КАРТЕ
         // ==========================================
-        function createMarkerOnMap(y, x, title, desc) {
-            var newMarker = L.marker([y, x], {icon: towerIcon}).addTo(map);
+        function createMarkerOnMap(y, x, title, desc, iconType) {
+            // Ищем иконку в нашей библиотеке. 
+            // Если такой нет (или это старая метка без иконки), ставим 'tower' по умолчанию
+            var selectedIcon = mapIcons[iconType] || mapIcons['tower'];
+
+            // Используем выбранную иконку при создании маркера
+            var newMarker = L.marker([y, x], {icon: selectedIcon}).addTo(map);
+
+            // ... (весь остальной код внутри функции оставляем без изменений: popupContent, bindPopup, tooltip и т.д.)
 
             var popupContent = `
                 <div class="plaque-content">
@@ -179,9 +200,13 @@
         // ==========================================
         markersRef.on('child_added', function(snapshot) {
             var data = snapshot.val();
-            createMarkerOnMap(data.y, data.x, data.title, data.description);
+            // Добавили передачу data.icon
+            createMarkerOnMap(data.y, data.x, data.title, data.description, data.icon);
         });
 
+        // ==========================================
+        // 5. ИНТЕРФЕЙС СОЗДАНИЯ НОВОЙ МЕТКИ
+        // ==========================================
         // ==========================================
         // 5. ИНТЕРФЕЙС СОЗДАНИЯ НОВОЙ МЕТКИ
         // ==========================================
@@ -194,10 +219,22 @@
             var formHtml = `
                 <div class="plaque-content" style="padding: 15px;">
                     <h3>Новое место</h3>
+                    
                     <input type="text" id="newMarkerTitle" placeholder="Название локации..." 
                            style="width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 8px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b; font-family: 'Georgia', serif;">
+                    
+                    <select id="newMarkerIcon" style="width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 8px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b; font-family: 'Georgia', serif; outline: none;">
+                        <option value="tower"><Башня</option>
+                        <option value="tavern">Таверна</option>
+                        <option value="shop">Магазинчик</option>
+                        <option value="Вопрос">Место интереса</option>
+                        <option value="Эвент">Событие</option>
+                        <option value="Локация">Иконка локации</option>
+                        <option value="battle">Иконка Битвы</option>
+                    </select>
                     <textarea id="newMarkerDesc" placeholder="История этого места..." rows="4" 
                               style="width: 100%; box-sizing: border-box; margin-bottom: 15px; padding: 8px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b; font-family: 'Georgia', serif; resize: none;"></textarea>
+                    
                     <button onclick="saveMarker(${y}, ${x})" 
                             style="width: 100%; padding: 10px; background: #8b5a2b; color: #ebdca7; border: 1px solid #4a2e15; cursor: pointer; font-family: 'Georgia', serif; font-weight: bold; text-transform: uppercase;">
                         Воздвигнуть метку
@@ -207,21 +244,25 @@
             creationPopup.setLatLng([y, x]).setContent(formHtml).openOn(map);
         });
 
-        // Отправка данных в Firebase
+// Отправка данных в Firebase
         window.saveMarker = function(y, x) {
             var title = document.getElementById('newMarkerTitle').value;
             var desc = document.getElementById('newMarkerDesc').value;
+            // Читаем выбранное значение из нашего списка
+            var iconType = document.getElementById('newMarkerIcon').value; 
 
             if (title.trim() === "") {
                 alert("Назови это место, путник!");
                 return;
             }
 
+            // Отправляем в базу, добавив параметр icon
             markersRef.push({
                 y: y,
                 x: x,
                 title: title,
-                description: desc
+                description: desc,
+                icon: iconType // <--- СОХРАНЯЕМ ВЫБОР СЮДА
             });
 
             map.closePopup(creationPopup);
