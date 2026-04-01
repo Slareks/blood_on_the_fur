@@ -170,7 +170,12 @@
             var selectedIcon = mapIcons[iconType] || mapIcons['tower'];
             var newMarker = L.marker([y, x], {icon: selectedIcon}).addTo(map);
 
-            // НОВОЕ: Добавили красную кнопку "Разрушить метку", которая передает `key`
+            // КРИТИЧЕСКАЯ ПРАВКА: Останавливаем всплытие клика
+            newMarker.on('click', function(e) {
+                L.DomEvent.stopPropagation(e); 
+                // Теперь карта не узнает, что ты кликнул, если ты попал по маркеру
+            });
+
             var popupContent = `
                 <div class="plaque-content">
                     <h3>${title}</h3>
@@ -182,17 +187,19 @@
                 </div>
             `;
 
+            newMarker.bindPopup(popupContent, { 
+                className: 'fantasy-plaque', offset: [0, -35], maxWidth: 400, minWidth: 350
+            });
+
             newMarker.bindTooltip(title, {
                 permanent: true, direction: 'top', offset: [0, -40], className: 'fantasy-label'
             });
-
-            // Защита прокрутки текста (чтобы не скроллилась сама страница)
+            
             newMarker.on('popupopen', function(e) {
                 var container = e.popup._container.querySelector('.plaque-content');
                 if (container) { L.DomEvent.on(container, 'wheel', L.DomEvent.stopPropagation); }
             });
 
-            // Запоминаем этот маркер в словаре под его уникальным ключом
             activeMarkers[key] = newMarker;
         }
 
