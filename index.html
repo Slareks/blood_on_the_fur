@@ -157,23 +157,28 @@
             // 'ruins': L.icon({ iconUrl: 'images/ruins.png', iconSize: [45, 45], iconAnchor: [22, 45] }),
             // 'cave': L.icon({ iconUrl: 'images/cave.png', iconSize: [40, 40], iconAnchor: [20, 40] })
         };
+
+        var activeMarkers = {};
         // ==========================================
         // 3. ФУНКЦИЯ ОТРИСОВКИ МЕТКИ НА КАРТЕ
         // ==========================================
-        function createMarkerOnMap(y, x, title, desc, iconType) {
-            // Ищем иконку в нашей библиотеке. 
-            // Если такой нет (или это старая метка без иконки), ставим 'tower' по умолчанию
+        // ==========================================
+        // 3. ФУНКЦИЯ ОТРИСОВКИ МЕТКИ НА КАРТЕ
+        // ==========================================
+        // НОВОЕ: Добавили параметр `key` первым аргументом
+        function createMarkerOnMap(key, y, x, title, desc, iconType) {
             var selectedIcon = mapIcons[iconType] || mapIcons['tower'];
-
-            // Используем выбранную иконку при создании маркера
             var newMarker = L.marker([y, x], {icon: selectedIcon}).addTo(map);
 
-            // ... (весь остальной код внутри функции оставляем без изменений: popupContent, bindPopup, tooltip и т.д.)
-
+            // НОВОЕ: Добавили красную кнопку "Разрушить метку", которая передает `key`
             var popupContent = `
                 <div class="plaque-content">
                     <h3>${title}</h3>
                     <p>${desc}</p>
+                    <button onclick="deleteMarker('${key}')" 
+                            style="margin-top: 15px; width: 100%; padding: 6px; background: #6b2424; color: #ebdca7; border: 1px solid #4a2e15; cursor: pointer; font-family: 'Georgia', serif; font-size: 12px; font-weight: bold;">
+                        Разрушить метку
+                    </button>
                 </div>
             `;
 
@@ -188,11 +193,13 @@
             newMarker.on('mouseover', function () { this.openPopup(); });
             newMarker.on('mouseout', function () { this.closePopup(); });
             
-            // Защита прокрутки текста (чтобы не скроллилась сама страница)
             newMarker.on('popupopen', function(e) {
                 var container = e.popup._container.querySelector('.plaque-content');
                 if (container) { L.DomEvent.on(container, 'wheel', L.DomEvent.stopPropagation); }
             });
+
+            // НОВОЕ: Запоминаем этот маркер в словаре под его уникальным ключом
+            activeMarkers[key] = newMarker;
         }
 
         // ==========================================
@@ -200,8 +207,20 @@
         // ==========================================
         markersRef.on('child_added', function(snapshot) {
             var data = snapshot.val();
-            // Добавили передачу data.icon
-            createMarkerOnMap(data.y, data.x, data.title, data.description, data.icon);
+            var key = snapshot.key; // Достаем уникальный ID метки
+            // Передаем key в функцию
+            createMarkerOnMap(key, data.y, data.x, data.title, data.description, data.icon);
+        });
+
+        // НОВОЕ: Когда из базы удаляется метка:
+        markersRef.on('child_removed', function(snapshot) {
+            var key = snapshot.key;
+            
+            // Если такой маркер есть на карте - стираем его
+            if (activeMarkers[key]) {
+                map.removeLayer(activeMarkers[key]); // Убирает картинку с карты
+                delete activeMarkers[key];           // Стирает из памяти
+            }
         });
 
         // ==========================================
@@ -285,6 +304,18 @@
                 }
             });
         });
+        // ==========================================
+        // ФУНКЦИЯ УДАЛЕНИЯ ДАННЫХ ИЗ FIREBASE
+        // ==========================================
+        window.deleteMarker = function(key) {
+            // Спрашиваем подтверждение, чтобы не удалить случайно
+            var confirmDelete = confirm("Ты уверен, что хочешь стереть это место с лица Элдрии?");
+            
+            if (confirmDelete) {
+                // Обращаемся к конкретной метке по её ID и говорим "Удали себя"
+                markersRef.child(key).remove();
+            }
+        };
         
         map.fire('zoomend');
     </script>
