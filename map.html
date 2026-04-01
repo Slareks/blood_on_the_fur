@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интерактивная Карта Элдрии</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        /* ==========================================
+           СТИЛИ ДЛЯ НАДПИСЕЙ НАД ИКОНКАМИ
+           ========================================== */
+        .leaflet-tooltip.fantasy-label {
+            background: transparent !important; /* Убираем белый фон */
+            border: none !important;            /* Убираем рамку */
+            box-shadow: none !important;        /* Убираем тень прямоугольника */
+
+            /* Настройки самого текста */
+            font-family: 'Georgia', serif;
+            font-size: 16px;
+            font-weight: bold;
+            color: #ebdca7; /* Светло-золотистый цвет пергамента */
+            letter-spacing: 1px;
+
+            /* Густая черная тень вокруг букв, чтобы текст не сливался с картой */
+            text-shadow:
+                -1px -1px 0 #000,
+                 1px -1px 0 #000,
+                -1px  1px 0 #000,
+                 1px  1px 0 #000,
+                 0px  4px 8px rgba(0,0,0,0.8);
+        }
+
+        /* Убираем стандартный маленький треугольник (хвостик) тултипа */
+        .leaflet-tooltip.fantasy-label::before {
+            display: none !important;
+        }
+
+        body { margin: 0; padding: 0; background: #1a1a1a; }
+        #map { width: 100vw; height: 100vh; }
+        .leaflet-container {
+            background-color: #1a1a1a !important; /* Темный цвет, как у остального фона */
+        }
+        /* Плавное сжатие иконок при отдалении */
+        .leaflet-marker-icon {
+            transform-origin: bottom center !important;
+            transition: transform 0.2s ease-in-out;
+        }
+
+        /* ==========================================
+           ФЕНТЕЗИЙНАЯ ТАБЛИЧКА (CSS-МАГИЯ)
+           ========================================== */
+
+        /* 1. Настраиваем главную обертку окна */
+        .leaflet-popup.fantasy-plaque .leaflet-popup-content-wrapper {
+            /* Цвет старого пергамента с легким градиентом */
+            background: linear-gradient(135deg, #e8d5a6 0%, #d4b881 100%);
+            /* Темная деревянная рамка */
+            border: 4px solid #4a2e15;
+            border-radius: 8px; /* Слегка закругляем углы */
+            /* Двойная тень: внешняя черная для объема и внутренняя коричневая для эффекта старины */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8), inset 0 0 20px rgba(100,60,20,0.3);
+            padding: 0;
+        }
+
+        /* 2. Убираем стандартный "хвостик" (стрелочку вниз), пусть табличка парит в воздухе */
+        .leaflet-popup.fantasy-plaque .leaflet-popup-tip-container {
+            display: none;
+        }
+
+        /* 3. Внутренняя область с текстом */
+        .plaque-content {
+            padding: 20px;
+            font-family: 'Georgia', serif; /* Классический книжный шрифт */
+            color: #311c09; /* Очень темно-коричневый текст, почти черный */
+
+            /* Если текста слишком много, появится прокрутка! */
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        /* 4. Стилизация заголовка */
+        .plaque-content h3 {
+            margin: 0 0 12px 0;
+            font-size: 19px;
+            text-align: center;
+            /* Линия-разделитель под заголовком */
+            border-bottom: 2px solid #8b5a2b;
+            padding-bottom: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* 5. Стилизация обычного текста */
+        .plaque-content p {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            line-height: 1.5;
+            text-align: justify;
+        }
+
+        /* 6. Кастомный скроллбар (как в старых фолиантах) */
+        .plaque-content::-webkit-scrollbar { width: 6px; }
+        .plaque-content::-webkit-scrollbar-track { background: transparent; }
+        .plaque-content::-webkit-scrollbar-thumb { background-color: #4a2e15; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+       // Инициализация карты
+        var mapUrl = 'images/Вулфкрест.PNG';
+        var mapW = 1000;
+        var mapH = 638;
+        var bounds = [[0, 0], [mapH, mapW]];
+
+        var map = L.map('map', {
+            crs: L.CRS.Simple,
+            maxBounds: bounds,
+            maxBoundsViscosity: 1.0,
+            minZoom: 0, // Ограничили отдаление, чтобы не было видно пустоты
+            maxZoom: 2,
+            attributionControl: false,
+            scrollWheelZoom: false // Отключили зум колесиком
+        });
+
+        L.imageOverlay(mapUrl, bounds).addTo(map);
+
+        // УСТАНАВЛИВАЕМ СТАРТОВУЮ ТОЧКУ И ЗУМ (Вместо fitBounds)
+        // [438, 368] - координаты твоей таверны, 1 - уровень приближения
+        map.setView([438, 368], 1);
+
+        // Иконки
+        var towerIcon = L.icon({
+            iconUrl: 'images/tower.png',
+            iconSize: [50, 50],
+            iconAnchor: [25, 50]
+        });
+
+        var TavernIcon = L.icon({
+            iconUrl: 'images/Таверна3.png',
+            iconSize: [60, 60],
+            iconAnchor: [30, 60]
+        });
+
+        // Маркер таверны
+        var capitalMarker = L.marker([438, 368], {icon: TavernIcon}).addTo(map);
+
+        var tavernPopupContent = `
+            <div class="scroll-container">
+                <div class="scroll-text-area">
+                    <h3>Таверна "Жареный хвост"</h3>
+                    <p>Деревянная шумящая лачуга, которая подобно улью взгромоздилась на деревянные балки постамента над топкой почвой берегов Озера Кальтер. Знаменита лишь тем, что здесь всегда можно найти проблем и выпивку за гроши. Место отдыха самых бедных жителей города.</p>
+                    <p>Фирменным блюдом являются жареные крысиные хвостики в яичном кляре. Местный трактирщик Нилл - шепелявый, но бесстрашный безумец, обанкротившийся на одной из торговых сделок лет 20 назад и, прожив среди бедняков около 4 лет, решил открыть свою таверну. Крайне непритязательное, но дешёвое место, где вас обслужат в обмен на краденую посуду.</p>
+                </div>
+            </div>
+        `;
+
+        capitalMarker.bindPopup(tavernPopupContent, {
+            className: 'fantasy-plaque',
+            offset: [0, -45],
+            maxWidth: 450,
+            minWidth: 350
+        });
+
+        // Исправление прокрутки: при открытии окна принудительно разрешаем скролл
+            capitalMarker.bindTooltip("Таверна 'Жаренный хвост'", {
+            permanent: true,     // Текст виден всегда (если false - будет появляться только при наведении)
+            direction: 'top',    // Вешаем над иконкой (можно 'bottom', 'right', 'left')
+            offset: [0, -50],    // Сдвигаем чуть выше, чтобы не перекрывать крышу таверны
+            className: 'fantasy-label' // Применяем наш красивый CSS-стиль
+        });
+
+        capitalMarker.on('mouseover', function () { this.openPopup(); });
+        capitalMarker.on('mouseout', function () { this.closePopup(); });
+
+        // Маркер озера
+        var solarisMarker = L.marker([100, 554], {icon: towerIcon}).addTo(map);
+        var lakeContent = `
+            <div class="scroll-container">
+                <div class="scroll-text-area">
+                    <h3>Озеро Кальтер</h3>
+                    <p>Спокойные, но обманчивые воды, скрывающие на своем дне не одну тайну ушедших эпох.</p>
+                </div>
+            </div>
+        `;
+
+        solarisMarker.bindPopup(lakeContent, { className: 'fantasy-plaque', offset: [0, -35] });
+        solarisMarker.on('mouseover', function () { this.openPopup(); });
+        solarisMarker.on('mouseout', function () { this.closePopup(); });
+
+        // Координаты по клику
+        map.on('click', function(e) {
+            var y = Math.round(e.latlng.lat);
+            var x = Math.round(e.latlng.lng);
+            console.log("Координаты: [" + y + ", " + x + "]");
+        });
+
+        // Масштабирование иконок
+        map.on('zoomend', function() {
+            var currentZoom = map.getZoom();
+            var scale = 1;
+            if (currentZoom === 0) scale = 0.5;
+            else if (currentZoom === 1) scale = 0.8;
+            else if (currentZoom >= 2) scale = 1;
+
+            document.querySelectorAll('.leaflet-marker-icon').forEach(function(marker) {
+                var currentTransform = marker.style.transform;
+                if (currentTransform) {
+                    var cleanTransform = currentTransform.replace(/ scale\([0-9.]+\)/, '');
+                    marker.style.transform = cleanTransform + ' scale(' + scale + ')';
+                }
+            });
+        });
+        map.fire('zoomend');
+    </script>
+</body>
+</html>
