@@ -223,18 +223,29 @@
                 delete activeMarkers[key];           // Стирает из памяти
             }
         });
-
         // ==========================================
         // 5. ИНТЕРФЕЙС СОЗДАНИЯ НОВОЙ МЕТКИ
         // ==========================================
-        // ==========================================
-        // 5. ИНТЕРФЕЙС СОЗДАНИЯ НОВОЙ МЕТКИ
-        // ==========================================
-        var creationPopup = L.popup({ className: 'fantasy-plaque', minWidth: 300 });
-
         map.on('click', function(e) {
             var y = Math.round(e.latlng.lat);
             var x = Math.round(e.latlng.lng);
+
+            // 1. УМНЫЙ СЕНСОР: Узнаем, сколько пикселей от курсора до потолка экрана
+            var screenY = e.containerPoint.y;
+            
+            // 2. Рассчитываем сдвиг. Если мышка ближе чем 350px к верхнему краю,
+            // мы принудительно сдвигаем окно вниз на 320px.
+            var yOffset = 0;
+            if (screenY < 350) {
+                yOffset = 320; 
+            }
+
+            // 3. Создаем окно, применяя наш сдвиг
+            var creationPopup = L.popup({ 
+                className: 'fantasy-plaque', 
+                minWidth: 300,
+                offset: [0, yOffset] // Если клик высоко, окно "упадет" вниз!
+            });
 
             var formHtml = `
                 <div class="plaque-content" style="padding: 15px;">
@@ -244,14 +255,10 @@
                            style="width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 8px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b; font-family: 'Georgia', serif;">
                     
                     <select id="newMarkerIcon" style="width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 8px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b; font-family: 'Georgia', serif; outline: none;">
-                        <option value="tower">Башня</option>
-                        <option value="tavern">Таверна</option>
-                        <option value="shop">Магазинчик</option>
-                        <option value="Вопрос">Место интереса</option>
-                        <option value="Эвент">Событие</option>
-                        <option value="Локация">Иконка локации</option>
-                        <option value="battle">Иконка Битвы</option>
+                        <option value="tower">Одинокая башня</option>
+                        <option value="tavern">Шумная таверна</option>
                     </select>
+
                     <textarea id="newMarkerDesc" placeholder="История этого места..." rows="4" 
                               style="width: 100%; box-sizing: border-box; margin-bottom: 15px; padding: 8px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b; font-family: 'Georgia', serif; resize: none;"></textarea>
                     
@@ -261,14 +268,15 @@
                     </button>
                 </div>
             `;
+            
+            // Открываем окно
             creationPopup.setLatLng([y, x]).setContent(formHtml).openOn(map);
         });
 
-// Отправка данных в Firebase
+        // Отправка данных в Firebase
         window.saveMarker = function(y, x) {
             var title = document.getElementById('newMarkerTitle').value;
             var desc = document.getElementById('newMarkerDesc').value;
-            // Читаем выбранное значение из нашего списка
             var iconType = document.getElementById('newMarkerIcon').value; 
 
             if (title.trim() === "") {
@@ -276,16 +284,16 @@
                 return;
             }
 
-            // Отправляем в базу, добавив параметр icon
             markersRef.push({
                 y: y,
                 x: x,
                 title: title,
                 description: desc,
-                icon: iconType // <--- СОХРАНЯЕМ ВЫБОР СЮДА
+                icon: iconType
             });
 
-            map.closePopup(creationPopup);
+            // 4. Просто закрываем текущее активное окно (без указания переменной)
+            map.closePopup();
         };
 
         // ==========================================
