@@ -4,119 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Интерактивная карта</title>
-
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
     <style>
         body { margin: 0; padding: 0; background: #1a1a1a; }
         #map { width: 100vw; height: 100vh; }
-
-        /* Темный фон за пределами карты */
-        .leaflet-container {
-            background-color: #1a1a1a !important; 
-        }
-
-        /* Плавное сжатие иконок при отдалении */
-        .leaflet-marker-icon {
-            transform-origin: bottom center !important; 
-            transition: transform 0.2s ease-in-out; 
-        }
-
-        /* ==========================================
-           СТИЛИ БОЛЬШОГО ВСПЛЫВАЮЩЕГО ОКНА (Popup)
-           ========================================== */
+        .leaflet-container { background-color: #1a1a1a !important; }
+        .leaflet-marker-icon { transform-origin: bottom center !important; transition: transform 0.2s ease-in-out; }
+        
         .leaflet-popup.fantasy-plaque .leaflet-popup-content-wrapper {
             background: linear-gradient(135deg, #e8d5a6 0%, #d4b881 100%);
-            border: 4px solid #4a2e15;
-            border-radius: 8px; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.8), inset 0 0 20px rgba(100,60,20,0.3);
-            padding: 0;
+            border: 4px solid #4a2e15; border-radius: 8px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8), inset 0 0 20px rgba(100,60,20,0.3); padding: 0;
         }
-
-        .leaflet-popup.fantasy-plaque .leaflet-popup-tip-container {
-            display: none; /* Убираем нижний треугольник */
-        }
-
-        .plaque-content {
-            padding: 20px;
-            font-family: 'Georgia', serif; 
-            color: #311c09; 
-            max-height: 280px; 
-            overflow-y: auto; /* Включаем прокрутку для длинного текста */
-        }
-
-        .plaque-content h3 {
-            margin: 0 0 12px 0;
-            font-size: 19px;
-            text-align: center;
-            border-bottom: 2px solid #8b5a2b;
-            padding-bottom: 8px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .plaque-content p {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-            line-height: 1.5;
-            text-align: justify;
-        }
-
-        /* Кастомный скроллбар для текста */
+        .leaflet-popup.fantasy-plaque .leaflet-popup-tip-container { display: none; }
+        
+        .plaque-content { padding: 20px; font-family: 'Georgia', serif; color: #311c09; max-height: 280px; overflow-y: auto; }
+        .plaque-content h3 { margin: 0 0 12px 0; font-size: 19px; text-align: center; border-bottom: 2px solid #8b5a2b; padding-bottom: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .plaque-content p { margin: 0 0 10px 0; font-size: 14px; line-height: 1.5; text-align: justify; }
         .plaque-content::-webkit-scrollbar { width: 6px; }
         .plaque-content::-webkit-scrollbar-track { background: transparent; }
         .plaque-content::-webkit-scrollbar-thumb { background-color: #4a2e15; border-radius: 4px; }
-
-        /* ==========================================
-           СТИЛИ НАДПИСЕЙ НАД ИКОНКАМИ (Tooltip)
-           ========================================== */
+        
         .leaflet-tooltip.fantasy-label {
-            background: transparent !important; 
-            border: none !important;            
-            box-shadow: none !important;        
-            font-family: 'Georgia', serif;
-            font-size: 16px;
-            font-weight: bold;
-            color: #ebdca7; 
-            letter-spacing: 1px;
-            text-shadow: 
-                -1px -1px 0 #000,  
-                 1px -1px 0 #000,
-                -1px  1px 0 #000,
-                 1px  1px 0 #000,
-                 0px  4px 8px rgba(0,0,0,0.8);
+            background: transparent !important; border: none !important; box-shadow: none !important; font-family: 'Georgia', serif; font-size: 16px; font-weight: bold; color: #ebdca7; letter-spacing: 1px;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0px 4px 8px rgba(0,0,0,0.8);
         }
-
-        .leaflet-tooltip.fantasy-label::before {
-            display: none !important; /* Убираем треугольник у надписи */
-        }
+        .leaflet-tooltip.fantasy-label::before { display: none !important; }
     </style>
 </head>
 <body>
+    
     <div id="mapSelector" style="position: absolute; top: 10px; left: 50px; z-index: 1000; display: none; gap: 10px;">
-        <button onclick="switchMap('city')" style="padding: 10px 15px; background: #311c09; color: #ebdca7; border: 2px solid #8b5a2b; border-radius: 5px; cursor: pointer; font-family: 'Georgia', serif; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.5);">
+        <button onclick="masterSwitchMap('city')" style="padding: 10px 15px; background: #311c09; color: #ebdca7; border: 2px solid #8b5a2b; border-radius: 5px; cursor: pointer; font-family: 'Georgia', serif; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.5);">
             🏙️ Город Вулфкрест
         </button>
-        <button onclick="switchMap('world')" style="padding: 10px 15px; background: #311c09; color: #ebdca7; border: 2px solid #8b5a2b; border-radius: 5px; cursor: pointer; font-family: 'Georgia', serif; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.5);">
+        <button onclick="masterSwitchMap('world')" style="padding: 10px 15px; background: #311c09; color: #ebdca7; border: 2px solid #8b5a2b; border-radius: 5px; cursor: pointer; font-family: 'Georgia', serif; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.5);">
             🌍 Карта Мира
         </button>
     </div>
     
     <div id="authContainer" style="position: absolute; top: 10px; right: 10px; z-index: 1000; text-align: right;">
-        
         <button onclick="toggleAuthPanel()" style="background: rgba(49, 28, 9, 0.8); color: #ebdca7; border: 2px solid #8b5a2b; border-radius: 5px; padding: 8px 12px; cursor: pointer; margin-bottom: 5px; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.5);">
             🗝️
         </button>
 
         <div id="authPanel" style="display: none; background: rgba(26, 26, 26, 0.9); padding: 15px; border: 2px solid #8b5a2b; border-radius: 5px; font-family: 'Georgia', serif; color: #ebdca7;">
-            
             <div id="loginForm">
                 <input type="text" id="emailInput" placeholder="Почта мастера" style="margin-bottom: 8px; width: 160px; padding: 5px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b;"><br>
                 <input type="password" id="passwordInput" placeholder="Пароль" style="margin-bottom: 8px; width: 160px; padding: 5px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b;"><br>
                 <button onclick="loginMaster()" style="width: 100%; padding: 6px; background: #8b5a2b; color: #ebdca7; border: 1px solid #4a2e15; cursor: pointer; font-weight: bold;">Войти</button>
             </div>
-
             <div id="masterPanel" style="display: none; text-align: center;">
                 <p style="margin: 0 0 10px 0; font-size: 14px; color: #a4d3a2;">Режим Мастера активен</p>
                 <button onclick="logoutMaster()" style="width: 100%; padding: 6px; background: #6b2424; color: #ebdca7; border: 1px solid #4a2e15; cursor: pointer; font-weight: bold;">Покинуть пост</button>
@@ -129,14 +66,12 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
         // ==========================================
-        // 1. ИНИЦИАЛИЗАЦИЯ БАЗЫ ДАННЫХ FIREBASE
+        // 1. FIREBASE
         // ==========================================
-        // ВНИМАНИЕ: ЗАМЕНИ ЭТОТ БЛОК НА СВОИ ДАННЫЕ ИЗ GOOGLE CONSOLE!
         const firebaseConfig = {
               apiKey: "AIzaSyBea7xAB3r_lZf2BhK74CEGgBEylodbO14",
               authDomain: "blood-on-the-fur.firebaseapp.com",
@@ -146,144 +81,106 @@
               messagingSenderId: "1055039376241",
               appId: "1:1055039376241:web:d62c0fc681d86d7b2304d0",
               measurementId: "G-46SNC9CKGK"
-            };
+        };
         
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const markersRef = database.ref('eldria_custom_markers'); 
-        const auth = firebase.auth();
-        let isMaster = false; // По умолчанию все гости
+        const stateRef = database.ref('eldria_global_state/active_map'); // НОВОЕ: Ссылка на текущую активную карту для всех
 
-// ==========================================
-        // АВТОРИЗАЦИЯ И СТАТУС ПОЛЬЗОВАТЕЛЯ
+        // ==========================================
+        // 2. АВТОРИЗАЦИЯ И ИНТЕРФЕЙС
         // ==========================================
         const auth = firebase.auth();
-        let isMaster = false; // По умолчанию все гости
+        let isMaster = false; 
 
-        // Функция для скрытия/показа панельки по клику на ключик
         window.toggleAuthPanel = function() {
             var panel = document.getElementById('authPanel');
-            if (panel.style.display === 'none') {
-                panel.style.display = 'block';
-            } else {
-                panel.style.display = 'none';
-            }
+            panel.style.display = (panel.style.display === 'none') ? 'block' : 'none';
         };
 
-        // Слушаем изменения статуса (вошел/вышел)
         auth.onAuthStateChanged(function(user) {
             if (user) {
-                // МАСТЕР ВОШЕЛ
                 isMaster = true;
                 document.getElementById('loginForm').style.display = 'none';
                 document.getElementById('masterPanel').style.display = 'block';
-                
-                // ПОКАЗЫВАЕМ ВЫБОР КАРТ (СЦЕН)
-                document.getElementById('mapSelector').style.display = 'flex';
+                document.getElementById('mapSelector').style.display = 'flex'; // Мастер видит переключатель
             } else {
-                // ЭТО ОБЫЧНЫЙ ИГРОК
                 isMaster = false;
                 document.getElementById('loginForm').style.display = 'block';
                 document.getElementById('masterPanel').style.display = 'none';
-                
-                // ПРЯЧЕМ ВЫБОР КАРТ
-                document.getElementById('mapSelector').style.display = 'none';
-                
-                // Если Мастер вышел из системы, находясь на другой карте, 
-                // принудительно возвращаем вид на дефолтную (Город)
-                switchMap('city'); 
+                document.getElementById('mapSelector').style.display = 'none'; // Игроки не видят переключатель
             }
         });
 
-        // Функция входа
         window.loginMaster = function() {
             const email = document.getElementById('emailInput').value;
             const pass = document.getElementById('passwordInput').value;
-            auth.signInWithEmailAndPassword(email, pass)
-                .catch(function(error) {
-                    alert("Ошибка входа: " + error.message);
-                });
+            auth.signInWithEmailAndPassword(email, pass).catch(e => alert("Ошибка: " + e.message));
         };
 
-        // Функция выхода
         window.logoutMaster = function() {
             auth.signOut();
-            // Автоматически закрываем панельку после выхода для красоты
             document.getElementById('authPanel').style.display = 'none';
         };
 
         // ==========================================
-        // 2. НАСТРОЙКА СЦЕН (ЛОКАЦИЙ)
+        // 3. СИНХРОНИЗАЦИЯ СЦЕН (ЛОКАЦИЙ)
         // ==========================================
-        // Здесь мы описываем все наши карты. Ты можешь добавлять сюда новые!
         var mapsConfig = {
-            'city': {
-                url: 'images/Вулфкрест.png',
-                width: 1000,
-                height: 638,
-                center: [438, 368], // Куда смотрит камера при загрузке
-                zoom: 1
-            },
-            'world': {
-                url: 'images/map.jpg', // ПОМЕСТИ СЮДА СВОЮ КАРТУ МИРА
-                width: 2000, // Укажи реальную ширину картинки мира
-                height: 1500, // Укажи реальную высоту картинки мира
-                center: [750, 1000],
-                zoom: 0
-            }
+            'city': { url: 'images/Вулфкрест.png', width: 1000, height: 638, center: [438, 368], zoom: 1 },
+            'world': { url: 'images/map.jpg', width: 2000, height: 1500, center: [750, 1000], zoom: 0 }
         };
 
-        var currentMapId = 'city'; // Карта по умолчанию
-        var currentOverlay = null; // Текущая картинка на экране
-        var allMarkersData = {};   // "Память" для всех загруженных меток
+        var currentMapId = null; // Изначально не знаем, какая карта
+        var currentOverlay = null; 
+        var allMarkersData = {};   
 
-        // Создаем пустую карту
         var map = L.map('map', {
-            crs: L.CRS.Simple,
-            minZoom: 0,
-            maxZoom: 2,
-            attributionControl: false,
-            scrollWheelZoom: false
+            crs: L.CRS.Simple, minZoom: 0, maxZoom: 2, attributionControl: false, scrollWheelZoom: false
         });
 
-        // Функция переключения карт
-        window.switchMap = function(newMapId) {
+        // Внутренняя функция перерисовки
+        function renderMap(newMapId) {
+            if (currentMapId === newMapId) return; // Если мы уже тут, ничего не делаем
             currentMapId = newMapId;
             var config = mapsConfig[newMapId];
             var bounds = [[0, 0], [config.height, config.width]];
 
-            // 1. Удаляем старую картинку, если она была
-            if (currentOverlay) {
-                map.removeLayer(currentOverlay);
-            }
-
-            // 2. Ставим новую картинку и новые границы
+            if (currentOverlay) map.removeLayer(currentOverlay);
+            
             currentOverlay = L.imageOverlay(config.url, bounds).addTo(map);
             map.setMaxBounds(bounds);
             map.setView(config.center, config.zoom);
 
-            // 3. Стираем с экрана старые метки
             for (var key in activeMarkers) {
                 map.removeLayer(activeMarkers[key]);
                 delete activeMarkers[key];
             }
 
-            // 4. Достаем из "памяти" и рисуем только те метки, которые принадлежат новой карте
             for (var key in allMarkersData) {
                 var data = allMarkersData[key];
                 if (data.mapId === currentMapId) {
                     createMarkerOnMap(key, data.y, data.x, data.title, data.description, data.icon);
                 }
             }
+        }
+
+        // НОВОЕ: Функция для мастера (переключает карту и записывает выбор в базу для всех)
+        window.masterSwitchMap = function(newMapId) {
+            if (!isMaster) return;
+            stateRef.set(newMapId); // Записываем в базу: "Теперь все смотрят сюда"
         };
 
-        // Запускаем первую карту при загрузке страницы
-        switchMap('city');
+        // НОВОЕ: Слушаем базу. Если мастер переключил карту - она переключится У ВСЕХ
+        stateRef.on('value', function(snapshot) {
+            var activeMapInBase = snapshot.val() || 'city'; // Если база пустая, грузим город
+            renderMap(activeMapInBase);
+        });
 
         // ==========================================
-        // 2.5 БИБЛИОТЕКА ИКОНОК
+        // 4. МАРКЕРЫ (ИКОНКИ, ОТРИСОВКА)
         // ==========================================
-        // Создаем словарь всех доступных иконок
         var mapIcons = {
             'tower': L.icon({ iconUrl: 'images/tower.png', iconSize: [50, 50], iconAnchor: [25, 50] }),
             'tavern': L.icon({ iconUrl: 'images/таверна.png', iconSize: [60, 60], iconAnchor: [30, 60] }),
@@ -291,13 +188,10 @@
             'battle': L.icon({ iconUrl: 'images/Битва.png', iconSize: [60, 60], iconAnchor: [30, 60] }),
             'Вопрос': L.icon({ iconUrl: 'images/Вопрос.png', iconSize: [50, 50], iconAnchor: [25, 50] }),
             'Локация': L.icon({ iconUrl: 'images/Локация.png', iconSize: [60, 60], iconAnchor: [30, 60] }),
-            'Эвент': L.icon({ iconUrl: 'images/Эвент.png', iconSize: [50, 50], iconAnchor: [25, 50] }),
-            // Сюда ты сможешь легко добавлять новые! Например:
-            // 'ruins': L.icon({ iconUrl: 'images/ruins.png', iconSize: [45, 45], iconAnchor: [22, 45] }),
-            // 'cave': L.icon({ iconUrl: 'images/cave.png', iconSize: [40, 40], iconAnchor: [20, 40] })
+            'Эвент': L.icon({ iconUrl: 'images/Эвент.png', iconSize: [50, 50], iconAnchor: [25, 50] })
         };
-
         var activeMarkers = {};
+
         function getPopupHtml(key, title, desc) {
             const user = firebase.auth().currentUser;
             const deleteBtn = user 
@@ -311,9 +205,8 @@
             var newMarker = L.marker([y, x], {icon: selectedIcon}).addTo(map);
 
             newMarker.on('click', function(e) { L.DomEvent.stopPropagation(e); });
-
             newMarker.bindPopup("", { className: 'fantasy-plaque', offset: [0, -35], maxWidth: 400, minWidth: 350 });
-
+            
             newMarker.on('popupopen', function(e) {
                 newMarker.setPopupContent(getPopupHtml(key, title, desc));
                 var container = e.popup._container.querySelector('.plaque-content');
@@ -325,19 +218,14 @@
         }
 
         // ==========================================
-        // 4. ЗАГРУЗКА И УДАЛЕНИЕ МЕТОК ИЗ БАЗЫ
+        // 5. ЗАГРУЗКА И СОХРАНЕНИЕ
         // ==========================================
         markersRef.on('child_added', function(snapshot) {
             var data = snapshot.val();
             var key = snapshot.key;
-            
-            // Если у старых меток не было привязки к карте, считаем, что они из города
             data.mapId = data.mapId || 'city'; 
-            
-            // Запоминаем метку в общую базу ВСЕХ меток
             allMarkersData[key] = data;
 
-            // Рисуем, только если метка принадлежит активной сейчас карте
             if (data.mapId === currentMapId) {
                 createMarkerOnMap(key, data.y, data.x, data.title, data.description, data.icon);
             }
@@ -349,40 +237,23 @@
                 map.removeLayer(activeMarkers[key]);
                 delete activeMarkers[key];
             }
-            delete allMarkersData[key]; // Стираем из общей памяти
+            delete allMarkersData[key]; 
         });
-        // ==========================================
-        // 5. ИНТЕРФЕЙС СОЗДАНИЯ НОВОЙ МЕТКИ
-        // ==========================================
+
+        // Создание
         map.on('click', function(e) {
-            // Если это не мастер - просто ничего не делаем при клике по карте
             if (!isMaster) return;
             var y = Math.round(e.latlng.lat);
             var x = Math.round(e.latlng.lng);
-
-            // 1. УМНЫЙ СЕНСОР: Узнаем, сколько пикселей от курсора до потолка экрана
             var screenY = e.containerPoint.y;
-            
-            // 2. Рассчитываем сдвиг. Если мышка ближе чем 350px к верхнему краю,
-            // мы принудительно сдвигаем окно вниз на 320px.
-            var yOffset = 0;
-            if (screenY < 350) {
-                yOffset = 320; 
-            }
+            var yOffset = screenY < 350 ? 320 : 0; 
 
-            // 3. Создаем окно, применяя наш сдвиг
-            var creationPopup = L.popup({ 
-                className: 'fantasy-plaque', 
-                minWidth: 300,
-                offset: [0, yOffset] // Если клик высоко, окно "упадет" вниз!
-            });
+            var creationPopup = L.popup({ className: 'fantasy-plaque', minWidth: 300, offset: [0, yOffset] });
 
             var formHtml = `
                 <div class="plaque-content" style="padding: 15px;">
                     <h3>Новое место</h3>
-                    
-                    <input type="text" id="newMarkerTitle" placeholder="Название локации..." 
-                           style="width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 8px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b; font-family: 'Georgia', serif;">
+                    <input type="text" id="newMarkerTitle" placeholder="Название локации..." style="width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 8px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b; font-family: 'Georgia', serif;">
                     
                     <select id="newMarkerIcon" style="width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 8px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b; font-family: 'Georgia', serif; outline: none;">
                         <option value="tower">Иконка башни</option>
@@ -394,76 +265,38 @@
                         <option value="Локация">Иконка локации</option>
                     </select>
 
-                    <textarea id="newMarkerDesc" placeholder="История этого места..." rows="4" 
-                              style="width: 100%; box-sizing: border-box; margin-bottom: 15px; padding: 8px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b; font-family: 'Georgia', serif; resize: none;"></textarea>
+                    <textarea id="newMarkerDesc" placeholder="История этого места..." rows="4" style="width: 100%; box-sizing: border-box; margin-bottom: 15px; padding: 8px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b; font-family: 'Georgia', serif; resize: none;"></textarea>
                     
-                    <button onclick="saveMarker(${y}, ${x})" 
-                            style="width: 100%; padding: 10px; background: #8b5a2b; color: #ebdca7; border: 1px solid #4a2e15; cursor: pointer; font-family: 'Georgia', serif; font-weight: bold; text-transform: uppercase;">
+                    <button onclick="saveMarker(${y}, ${x})" style="width: 100%; padding: 10px; background: #8b5a2b; color: #ebdca7; border: 1px solid #4a2e15; cursor: pointer; font-family: 'Georgia', serif; font-weight: bold; text-transform: uppercase;">
                         Воздвигнуть метку
                     </button>
                 </div>
             `;
-            
-            // Открываем окно
             creationPopup.setLatLng([y, x]).setContent(formHtml).openOn(map);
         });
 
-        // Отправка данных в Firebase
         window.saveMarker = function(y, x) {
             var title = document.getElementById('newMarkerTitle').value;
             var desc = document.getElementById('newMarkerDesc').value;
             var iconType = document.getElementById('newMarkerIcon').value; 
 
-            if (title.trim() === "") {
-                alert("Назови это место, путник!");
-                return;
-            }
+            if (title.trim() === "") { alert("Назови это место, путник!"); return; }
 
-            markersRef.push({
-                y: y,
-                x: x,
-                title: title,
-                description: desc,
-                icon: iconType,
-                mapId: currentMapId
-            });
-
-            // 4. Просто закрываем текущее активное окно (без указания переменной)
+            markersRef.push({ y: y, x: x, title: title, description: desc, icon: iconType, mapId: currentMapId });
             map.closePopup();
         };
 
-        // ==========================================
-        // 6. МАСШТАБИРОВАНИЕ ИКОНОК
-        // ==========================================
+        window.deleteMarker = function(key) {
+            if (!firebase.auth().currentUser) { alert("У вас нет власти в этих землях!"); return; }
+            if (confirm("Стереть это место с лица Элдрии?")) markersRef.child(key).remove();
+        };
+
         map.on('zoomend', function() {
-            var currentZoom = map.getZoom();
-            var scale = 1;
-            if (currentZoom === 0) scale = 0.5;
-            else if (currentZoom === 1) scale = 0.8;
-            
-            document.querySelectorAll('.leaflet-marker-icon').forEach(function(marker) {
-                var currentTransform = marker.style.transform;
-                if (currentTransform) {
-                    var cleanTransform = currentTransform.replace(/ scale\([0-9.]+\)/, '');
-                    marker.style.transform = cleanTransform + ' scale(' + scale + ')';
-                }
+            var scale = map.getZoom() === 0 ? 0.5 : (map.getZoom() === 1 ? 0.8 : 1);
+            document.querySelectorAll('.leaflet-marker-icon').forEach(m => {
+                m.style.transform = (m.style.transform || '').replace(/ scale\([0-9.]+\)/, '') + ' scale(' + scale + ')';
             });
         });
-        // ==========================================
-        // ФУНКЦИЯ УДАЛЕНИЯ ДАННЫХ ИЗ FIREBASE
-        // ==========================================
-        window.deleteMarker = function(key) {
-            // Проверка: вошел ли пользователь?
-            if (!firebase.auth().currentUser) {
-                alert("У вас нет власти в этих землях, путник!");
-                return;
-            }
-
-            if (confirm("Ты уверен, что хочешь стереть это место с лица Элдрии?")) {
-                markersRef.child(key).remove();
-            }
-        };
-        
         map.fire('zoomend');
     </script>
 </body>
