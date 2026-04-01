@@ -115,7 +115,7 @@
 
     <script>
        // Инициализация карты
-        var mapUrl = 'images/Вулфкрест.png';
+        var mapUrl = 'images/Вулфкрест.PNG';
         var mapW = 1000;
         var mapH = 638;
         var bounds = [[0, 0], [mapH, mapW]];
@@ -144,7 +144,7 @@
         });
 
         var TavernIcon = L.icon({
-            iconUrl: 'images/таверна.png',
+            iconUrl: 'images/Таверна3.png',
             iconSize: [60, 60],
             iconAnchor: [30, 60]
         });
@@ -195,12 +195,99 @@
         solarisMarker.on('mouseover', function () { this.openPopup(); });
         solarisMarker.on('mouseout', function () { this.closePopup(); });
 
-        // Координаты по клику
+// ==========================================
+        // ИНТЕРФЕЙС СОЗДАНИЯ НОВОЙ МЕТКИ (Шаг 2)
+        // ==========================================
+        var creationPopup = L.popup({
+            className: 'fantasy-plaque', // Используем наш стиль таблички
+            minWidth: 300
+        });
+
+        // 1. Открываем форму при клике на карту
         map.on('click', function(e) {
             var y = Math.round(e.latlng.lat);
             var x = Math.round(e.latlng.lng);
-            console.log("Координаты: [" + y + ", " + x + "]");
+
+            // Создаем HTML-код нашей формы с полями ввода
+            var formHtml = `
+                <div class="plaque-content" style="padding: 15px;">
+                    <h3>Новое место</h3>
+
+                    <input type="text" id="newMarkerTitle" placeholder="Название локации"
+                           style="width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 8px;
+                                  background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b;
+                                  font-family: 'Georgia', serif;">
+
+                    <textarea id="newMarkerDesc" placeholder="История этого места..." rows="4"
+                              style="width: 100%; box-sizing: border-box; margin-bottom: 15px; padding: 8px;
+                                     background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b;
+                                     font-family: 'Georgia', serif; resize: none;"></textarea>
+
+                    <button onclick="saveMarker(${y}, ${x})"
+                            style="width: 100%; padding: 10px; background: #8b5a2b; color: #ebdca7;
+                                   border: 1px solid #4a2e15; cursor: pointer; font-family: 'Georgia', serif;
+                                   font-weight: bold; text-transform: uppercase;">
+                        Воздвигнуть метку
+                    </button>
+                </div>
+            `;
+
+            // Ставим окошко на карту в место клика
+            creationPopup
+                .setLatLng([y, x])
+                .setContent(formHtml)
+                .openOn(map);
         });
+
+        // 2. Функция, которая срабатывает при нажатии на кнопку "Воздвигнуть метку"
+        window.saveMarker = function(y, x) {
+            // Читаем, что пользователь написал в полях
+            var title = document.getElementById('newMarkerTitle').value;
+            var desc = document.getElementById('newMarkerDesc').value;
+
+            // Проверка: если не ввели название, ругаемся
+            if (title.trim() === "") {
+                alert("Назови это место, путник!");
+                return;
+            }
+
+            // Закрываем форму создания
+            map.closePopup(creationPopup);
+
+            // СОЗДАЕМ САМУ МЕТКУ НА КАРТЕ (пока используем иконку башни по умолчанию)
+            var newMarker = L.marker([y, x], {icon: towerIcon}).addTo(map);
+
+            // Собираем для нее стандартный текст
+            var popupContent = `
+                <div class="plaque-content">
+                    <h3>${title}</h3>
+                    <p>${desc}</p>
+                </div>
+            `;
+
+            // Привязываем большое окно
+            newMarker.bindPopup(popupContent, {
+                className: 'fantasy-plaque',
+                offset: [0, -35],
+                maxWidth: 400,
+                minWidth: 350
+            });
+
+            // Привязываем тултип (надпись над маркером)
+            newMarker.bindTooltip(title, {
+                permanent: true,
+                direction: 'top',
+                offset: [0, -40],
+                className: 'fantasy-label'
+            });
+
+            // Навешиваем события открытия/закрытия
+            newMarker.on('mouseover', function () { this.openPopup(); });
+            newMarker.on('mouseout', function () { this.closePopup(); });
+
+            // Выводим в консоль данные (в Шаге 3 мы вместо console.log будем отправлять это в Firebase)
+            console.log("Готово к отправке в базу:", { title: title, description: desc, y: y, x: x });
+        };
 
         // Масштабирование иконок
         map.on('zoomend', function() {
