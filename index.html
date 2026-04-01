@@ -94,11 +94,26 @@
     </style>
 </head>
 <body>
+    
+    <div id="authPanel" style="position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(26, 26, 26, 0.8); padding: 10px; border: 2px solid #8b5a2b; border-radius: 5px; font-family: 'Georgia', serif; color: #ebdca7;">
+        
+        <div id="loginForm">
+            <input type="text" id="emailInput" placeholder="Почта мастера" style="margin-bottom: 5px; width: 150px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b;"><br>
+            <input type="password" id="passwordInput" placeholder="Пароль" style="margin-bottom: 5px; width: 150px; background: #311c09; color: #ebdca7; border: 1px solid #8b5a2b;"><br>
+            <button onclick="loginMaster()" style="width: 100%; background: #8b5a2b; color: #ebdca7; border: 1px solid #4a2e15; cursor: pointer;">Войти</button>
+        </div>
 
+        <div id="masterPanel" style="display: none; text-align: center;">
+            <p style="margin: 0 0 5px 0; font-size: 14px; color: #a4d3a2;">Режим Мастера активен</p>
+            <button onclick="logoutMaster()" style="background: #6b2424; color: #ebdca7; border: 1px solid #4a2e15; cursor: pointer;">Выйти</button>
+        </div>
+    </div>
+    
     <div id="map"></div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -121,6 +136,38 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const markersRef = database.ref('eldria_custom_markers'); 
+        const auth = firebase.auth();
+        let isMaster = false; // По умолчанию все гости
+
+        // Слушаем изменения статуса (вошел/вышел)
+        auth.onAuthStateChanged(function(user) {
+            if (user) {
+                // Если вошел успешно
+                isMaster = true;
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('masterPanel').style.display = 'block';
+            } else {
+                // Если это гость
+                isMaster = false;
+                document.getElementById('loginForm').style.display = 'block';
+                document.getElementById('masterPanel').style.display = 'none';
+            }
+        });
+
+        // Функция входа
+        window.loginMaster = function() {
+            const email = document.getElementById('emailInput').value;
+            const pass = document.getElementById('passwordInput').value;
+            auth.signInWithEmailAndPassword(email, pass)
+                .catch(function(error) {
+                    alert("Ошибка входа: " + error.message);
+                });
+        };
+
+        // Функция выхода
+        window.logoutMaster = function() {
+            auth.signOut();
+        };
 
         // ==========================================
         // 2. БАЗОВАЯ НАСТРОЙКА КАРТЫ
@@ -167,6 +214,17 @@
         // ==========================================
         // НОВОЕ: Добавили параметр `key` первым аргументом
         function createMarkerOnMap(key, y, x, title, desc, iconType) {
+            // Если Мастер - показываем кнопку удаления. Если гость - показываем пустую строку.
+            var deleteBtnHtml = isMaster 
+                ? `<button onclick="deleteMarker('${key}')" style="margin-top: 15px; width: 100%; padding: 6px; background: #6b2424; color: #ebdca7; border: 1px solid #4a2e15; cursor: pointer; font-family: 'Georgia', serif; font-size: 12px; font-weight: bold;">Разрушить метку</button>` 
+                : '';
+
+            var popupContent = `
+                <div class="plaque-content">
+                    <h3>${title}</h3>
+                    <p>${desc}</p>
+                    ${deleteBtnHtml} </div>
+            `;
             var selectedIcon = mapIcons[iconType] || mapIcons['tower'];
             var newMarker = L.marker([y, x], {icon: selectedIcon}).addTo(map);
 
@@ -227,6 +285,8 @@
         // 5. ИНТЕРФЕЙС СОЗДАНИЯ НОВОЙ МЕТКИ
         // ==========================================
         map.on('click', function(e) {
+            // Если это не мастер - просто ничего не делаем при клике по карте
+            if (!isMaster) return;
             var y = Math.round(e.latlng.lat);
             var x = Math.round(e.latlng.lng);
 
